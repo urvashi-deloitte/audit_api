@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+    <apikit:config name="audit_api-config" api="audit_api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="fd2f78d5-1f40-42b5-a945-c26c8362b91b">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="audit_api-main">
+        <http:listener path="/api/*" config-ref="HTTP_Listener_config">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:body><![CDATA[#[output application/json --- payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[output application/json --- payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="audit_api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="audit_api-console">
+        <http:listener path="/console/*" config-ref="HTTP_Listener_config">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="audit_api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\audit:audit_api-config">
+        <flow-ref doc:name="Flow Reference" doc:id="a6e4a882-d1bd-45a7-8995-3f1ec3aeeb66" name="logging_enable_portalFlow1" />
+    </flow>
+    <flow name="get:\audit\(requestorId):audit_api-config">
+        <flow-ref doc:name="Flow Reference" doc:id="f3dd7cf9-6a92-406f-8e43-dfe588a3bb6d" name="logging_enable_portalFlow4" />
+    </flow>
+    <flow name="get:\audit\sort\hightolow:audit_api-config">
+        <flow-ref doc:name="Flow Reference" doc:id="29640b88-408e-45c2-87a1-aa46e5707b34" name="logging_enable_portalFlow3" />
+    </flow>
+    <flow name="get:\audit\sort\lowtohigh:audit_api-config">
+        <flow-ref doc:name="Flow Reference" doc:id="d3cbd274-1b77-4a86-942c-f73fbb66892c" name="logging_enable_portalFlow2" />
+    </flow>
+    <flow name="get:\audit\sort:audit_api-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+[
+  {
+    reqId: 1,
+    requestorId: 1,
+    envName: "Dhano",
+    envId: "9ui2w89yi82yqoiw",
+    orgId: "2wquwiywqiyqy88q",
+    deploymentId: "9iw29ty8ytyfa9ywqtuyyug",
+    loggingActivity: "Debug",
+    envType: "Basic",
+    userType: "Developer",
+    a_dId: 1,
+    reqStatus: "Pending",
+    teamId: "huyiwqujwoquiyug",
+    teamName: "Fun"
+  }, 
+  {
+    reqId: 2,
+    requestorId: 3,
+    envName: "Dharini",
+    envId: "9ui2w89yi23w82yqoiw",
+    orgId: "2wquwqw22iywqiyqy88q",
+    deploymentId: "9iw29ty8ytyfa9ywqtuyyug",
+    loggingActivity: "Debug",
+    envType: "Basic",
+    userType: "Developer",
+    a_dId: 1,
+    reqStatus: "Pending",
+    teamId: "huyiwqujwoquiyug",
+    teamName: "Fun"
+  }
+]]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>

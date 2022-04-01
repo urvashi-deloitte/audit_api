@@ -1,0 +1,55 @@
+#%RAML 1.0
+title: audit_api
+
+types:
+  audit: !include datatype/audit.raml
+  audits: audit[]
+
+/audit:
+  get:
+    description: display data of master table
+    queryParameters:
+      Sort:
+        # type: string
+        required: true
+      direction:
+        description: direction of sort
+        type: string
+        enum: [asc,desc]
+      # filterParam:
+      #   enum: [ reqId]
+      #   required: true
+      offset:
+        # example: 2
+        type: number
+        format: int
+      limit:
+        # example: 5
+        type: number
+        format: int
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              !include example/audit.json
+            type: audits   
+  /{requestorId}:
+    description:  Return requestor information on basis of Requestor Id
+    get:
+      responses:
+        200:
+          body:
+            application/json:
+              example:
+                !include example/audit.json
+              type: audits
+
+
+        
+          
+
+   
+  
+
+  

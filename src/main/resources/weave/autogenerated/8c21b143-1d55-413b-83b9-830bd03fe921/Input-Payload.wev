@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_8c21b143_1d55_413b_83b9_830bd03fe921_Input_Payload = Array<{  teamName: String,   a_dId: Number,   envId: String,   orgId: String,   reqId: Number,   reqStatus: String,   requestorId: Number,   envName: String,   envType: String,   deploymentId: String,   teamId: String,   loggingActivity: String,   userType: String,   _?: Any}>
+
