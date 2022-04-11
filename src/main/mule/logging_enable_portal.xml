@@ -7,74 +7,39 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<db:config name="Database_Config" doc:name="Database Config" doc:id="f297a3ca-1c08-482d-b454-074b52789185" >
-		<db:generic-connection url="jdbc:h2:file:C:\Users\urdhangar\loggingEnable" driverClassName="org.h2.Driver" />
+		<db:generic-connection url="jdbc:h2:file:C:\Users\sometiwari\OneDrive - Deloitte (O365D)\Desktop\login_auth_db\test" driverClassName="org.h2.Driver" />
 	</db:config>
-	<flow name="audit_table" doc:id="1190b07d-b536-4ee8-b682-19db9a2250f6" >
-		<http:listener doc:name="Listener" doc:id="4a6c2de6-f066-46f0-8843-853021dd82f0" path="/createmaster" config-ref="HTTP_Listener_config"/>
-		<db:execute-ddl doc:name="Execute DDL" doc:id="86bbf57b-0324-4d0f-b976-848d90c5f9c0" config-ref="Database_Config">
-			<db:sql ><![CDATA[create table master_Table(reqId int not null, requestorId int ,envName varchar(225),
-envId varchar(225),orgId varchar(225), deploymentId varchar(225),loggingActivity varchar(225),
-envType varchar(225),userType varchar(225),a_dId int, reqStatus varchar(225),teamId varchar(225),
-teamName varchar(225),Primary Key(reqId)
-);
-]]></db:sql>
-		</db:execute-ddl>
-	</flow>
-	<flow name="logging_enable_portalFlow" doc:id="85962a8f-c38d-4f95-ac6c-8536fafa17ff" >
-		<http:listener doc:name="Listener" doc:id="682ffa2e-66ae-4f8f-b06a-cd21e6d2cc14" path="/inserted" config-ref="HTTP_Listener_config"/>
-		<ee:transform doc:name="Transform Message" doc:id="1d86c751-5663-485b-a08f-aaef27d701eb" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-		<logger level="INFO" doc:name="Logger" doc:id="662b6fb4-d753-4a7d-ad8b-ae2427d67f20" message="#[payload]"/>
-		<db:insert doc:name="Insert" doc:id="e9b17bd8-94ff-4fe9-a356-d30a170cb23b" config-ref="Database_Config">
-			<db:sql ><![CDATA[insert into master_Table(reqId,requestorId,envName,envId,orgId,deploymentId,loggingActivity,envType,userType,a_dId,reqStatus,
-teamId,teamName) values(:reqId,:requestorId,:envName,:envId,:orgId,:deploymentId,:loggingActivity,
-:envType,:userType,:a_dId,:reqStatus,
-:teamId,:teamName);]]></db:sql>
-			<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
-		</db:insert>
-		<ee:transform doc:name="Transform Message" doc:id="50bc9c03-6bd4-4842-bc89-65ad2877b456" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-	</flow>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="7f8a210b-956b-4e52-a25c-b9d566b1662b" >
+		<http:request-connection host="localhost" port="8082" />
+	</http:request-config>
+	<http:request-config name="HTTP_Request_configuration1" doc:name="HTTP Request configuration" doc:id="0bae00a7-261b-49ba-96c4-4a3fb16994e7" >
+		<http:request-connection host="localhost" port="8082" />
+	</http:request-config>
 	<flow name="logging_enable_portalFlow1" doc:id="c815bc8d-8818-41b1-b982-84595c6a018c" >
 		<logger level="INFO" doc:name="Logger" doc:id="d5df4ab5-03b9-413d-9b53-7eb43375b3a7" message="#[attributes.queryParams.Sort]"/>
 		<ee:transform doc:name="Transform Message" doc:id="7611ea47-78a5-42f6-ae31-db08ff63817e" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
-output application/java
+output application/json
 ---
 {
 	setlimit: attributes.queryParams.limit,
 	setoffset:attributes.queryParams.offset,
-	setSort:attributes.queryParams.Sort
+	setSort:attributes.queryParams.Sort,
+	setdirection : attributes.queryParams.direction
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<choice doc:name="Choice" doc:id="0a452949-d655-43a4-a883-7a23ceda3011" >
-			<when expression='#[attributes.queryParams.direction == "asc"]'>
-				<db:select doc:name="Select" doc:id="38aa5d8f-ce85-48d7-bf31-bd8aa7956312" config-ref="Database_Config">
-					<db:sql ><![CDATA[Select * from master_Table order by requestorId limit :setlimit offset :setoffset;]]></db:sql>
-					<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
-		</db:select>
-			</when>
-			<otherwise >
-				<db:select doc:name="Select" doc:id="1b996469-9d0f-4272-8ff3-55f2d91a703e" config-ref="Database_Config">
-					<db:sql ><![CDATA[Select * from master_Table order by :Sort desc;]]></db:sql>
-					<db:input-parameters ><![CDATA[#[attributes.queryParams]]]></db:input-parameters>
-				</db:select>
-			</otherwise>
-		</choice>
+		<http:request method="GET" doc:name="Request" doc:id="b08ea0e0-1c0b-482a-97c1-e45d81a253b2" config-ref="HTTP_Request_configuration" path="/db/api/getreq">
+					<http:query-params><![CDATA[#[output application/java
+---
+{
+	offset : payload.setoffset,
+	limit : payload.setlimit,
+	Sort : payload.setSort,
+	direction : payload.setdirection
+}]]]></http:query-params>
+				</http:request>
 		<ee:transform doc:name="Transform Message" doc:id="09f6cabf-fab5-4cc1-af56-90ace9f2a230" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -83,214 +48,6 @@ output application/json
 payload]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-	</flow>
-	<flow name="logging_enable_portalFlow2" doc:id="e0aa1b29-5e33-4e10-b66c-9ba0d80f12f6" >
-		<ee:transform doc:name="Transform Message" doc:id="0eaa22b9-dc9b-4dc8-b1e7-f443a637bb34" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-{
-	uiparam : attributes.uriParams.on_basis
-}]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-		<choice doc:name="Choice" doc:id="13c2e0ed-9b0e-464b-b158-87267415c2b7" >
-			<when expression='#[attributes.uriParams.on_basis == "reqId"]'>
-				<db:select doc:name="Select" doc:id="fed0b2c7-0634-4d82-b65b-475b7e91cf96" config-ref="Database_Config">
-			<db:sql><![CDATA[Select * from master_Table order by reqId;]]></db:sql>
-		</db:select>
-				<ee:transform doc:name="Transform Message" doc:id="5f8214fd-a8cc-4bf7-ab5d-5cd65caf32f2">
-			<ee:message>
-				<ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "envName"]'>
-				<db:select doc:name="Select" doc:id="b637356b-d124-4511-a6e1-04de243141c3" config-ref="Database_Config">
-					<db:sql ><![CDATA[Select * from master_Table order by envName;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Transform Message" doc:id="58af3de2-b9b5-4719-baee-17b1b31496a5" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "envId"]'>
-				<db:select doc:name="Select" doc:id="ffeab28f-e061-4fc9-aa05-6972a757b6b9" config-ref="Database_Config">
-					<db:sql ><![CDATA[Select * from master_Table order by envId;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Transform Message" doc:id="f90de6f6-f838-4c0f-95f3-b3546ff51288" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "envType"]'>
-				<db:select doc:name="Select" doc:id="b770700e-6fde-4c83-85de-b40bd8c95f04" config-ref="Database_Config">
-					<db:sql ><![CDATA[Select * from master_Table order by envType;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Transform Message" doc:id="65a863e9-3f60-49fd-8ef2-f24857a12328" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "userType"]'>
-				<db:select doc:name="Select" doc:id="90dedcdb-7969-405b-8c7a-fca6aa991891" config-ref="Database_Config">
-					<db:sql ><![CDATA[Select * from master_Table order by userType;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Transform Message" doc:id="227341c5-281a-4e10-ada6-5728a31e8989" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "teamId"]'>
-				<db:select doc:name="Select" doc:id="6b870c5f-5096-4a64-80a4-77a77e4f2c56" config-ref="Database_Config">
-					<db:sql ><![CDATA[Select * from master_Table order by teamId;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Transform Message" doc:id="9e769db3-57bb-459a-b671-8aa49a14ba73">
-					<ee:message>
-						<ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "teamName"]'>
-				<db:select doc:name="Select" doc:id="4551e8bc-176f-4034-8772-82988574f23e" config-ref="Database_Config">
-					<db:sql ><![CDATA[Select * from master_Table order by teamName;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Transform Message" doc:id="eadd5311-ab6d-491c-89b7-be8a17385998" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-		</choice>
-	</flow>
-	<flow name="logging_enable_portalFlow3" doc:id="77435046-93c7-4ec1-b4f2-87ea365ad8a9" >
-		<ee:transform doc:name="Transform Message" doc:id="0a0b22a8-40a4-4a40-a1b7-57af77d74c86" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-		<choice doc:name="Copy_of_Copy_of_Copy_of_Choice" doc:id="68827d29-b57c-415a-b6d4-dc081624c917" >
-			<when expression='#[attributes.uriParams.on_basis == "reqId"]' >
-				<db:select doc:name="Copy_of_Copy_of_Copy_of_Select" doc:id="6ecb4e1b-29a3-43af-b7ab-6215a882ea76" config-ref="Database_Config" >
-					<db:sql ><![CDATA[Select * from master_Table order by reqId desc;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Copy_of_Copy_of_Copy_of_Transform Message" doc:id="08b32c4a-3392-43e6-9d05-7bb3baf0304d" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "envName"]' >
-				<db:select doc:name="Copy_of_Copy_of_Copy_of_Select" doc:id="47e50202-5027-4cd8-b766-1b2843ab22a9" config-ref="Database_Config" >
-					<db:sql ><![CDATA[Select * from master_Table order by envName desc;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Copy_of_Copy_of_Copy_of_Transform Message" doc:id="62acd4a0-10c7-4868-af30-8b866b71b21d" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "envId"]' >
-				<db:select doc:name="Copy_of_Copy_of_Copy_of_Select" doc:id="bf864da5-810d-4f5c-a860-682e6475f899" config-ref="Database_Config" >
-					<db:sql ><![CDATA[Select * from master_Table order by envId desc;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Copy_of_Copy_of_Copy_of_Transform Message" doc:id="cf8ad750-b520-4b82-b733-e49602b13f7d" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "envType"]' >
-				<db:select doc:name="Copy_of_Copy_of_Copy_of_Select" doc:id="097a319a-2074-42b4-91b6-7f9757d326d6" config-ref="Database_Config" >
-					<db:sql ><![CDATA[Select * from master_Table order by envType desc;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Copy_of_Copy_of_Copy_of_Transform Message" doc:id="086a9702-6867-47ed-8ac2-ea5ca46ec04d" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "userType"]' >
-				<db:select doc:name="Copy_of_Copy_of_Copy_of_Select" doc:id="370faa70-cec7-45c8-9d6c-1854071d77dd" config-ref="Database_Config" >
-					<db:sql ><![CDATA[Select * from master_Table order by userType desc;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Copy_of_Copy_of_Copy_of_Transform Message" doc:id="41255a92-7f43-412b-b993-869e43eaa94c" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "teamId"]' >
-				<db:select doc:name="Copy_of_Copy_of_Copy_of_Select" doc:id="a5fd9307-9d80-442a-9b18-756ddf6c790f" config-ref="Database_Config" >
-					<db:sql ><![CDATA[Select * from master_Table order by teamId desc;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Copy_of_Copy_of_Copy_of_Transform Message" doc:id="a8efc021-0265-4fcf-b032-5fb9636c381a" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<when expression='#[attributes.uriParams.on_basis == "teamName"]' >
-				<db:select doc:name="Copy_of_Copy_of_Copy_of_Select" doc:id="03ff2544-86ff-40a3-91b0-a8850b3a77ea" config-ref="Database_Config" >
-					<db:sql ><![CDATA[Select * from master_Table order by teamName desc;]]></db:sql>
-				</db:select>
-				<ee:transform doc:name="Copy_of_Copy_of_Copy_of_Transform Message" doc:id="4d104049-d73e-4693-a13d-8f72ae968464" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-		</choice>
 	</flow>
 	<flow name="logging_enable_portalFlow4" doc:id="8c21b143-1d55-413b-83b9-830bd03fe921" >
 		<ee:transform doc:name="Transform Message" doc:id="2a71350f-23fe-4203-848c-cc07eb6f0c5c" >

@@ -2,7 +2,14 @@
 <mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
     <apikit:config name="audit_api-config" api="audit_api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
     <http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="fd2f78d5-1f40-42b5-a945-c26c8362b91b">
-        <http:listener-connection host="0.0.0.0" port="8081" />
+        <http:listener-connection host="0.0.0.0" port="8083" />
+		<http:listener-interceptors >
+			<http:cors-interceptor >
+				<http:origins >
+					<http:public-resource />
+				</http:origins>
+			</http:cors-interceptor>
+		</http:listener-interceptors>
     </http:listener-config>
     <flow name="audit_api-main">
         <http:listener path="/api/*" config-ref="HTTP_Listener_config">
@@ -129,12 +136,6 @@ output application/json
     </flow>
     <flow name="get:\audit\(requestorId):audit_api-config">
         <flow-ref doc:name="Flow Reference" doc:id="f3dd7cf9-6a92-406f-8e43-dfe588a3bb6d" name="logging_enable_portalFlow4" />
-    </flow>
-    <flow name="get:\audit\sort\hightolow:audit_api-config">
-        <flow-ref doc:name="Flow Reference" doc:id="29640b88-408e-45c2-87a1-aa46e5707b34" name="logging_enable_portalFlow3" />
-    </flow>
-    <flow name="get:\audit\sort\lowtohigh:audit_api-config">
-        <flow-ref doc:name="Flow Reference" doc:id="d3cbd274-1b77-4a86-942c-f73fbb66892c" name="logging_enable_portalFlow2" />
     </flow>
     <flow name="get:\audit\sort:audit_api-config">
         <ee:transform>
